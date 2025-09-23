@@ -1,5 +1,126 @@
+/* Space Portal Landing Page Styles */
+
+
+.App-header {
+  border-radius: 18px;
+  margin: 2rem auto;
+  max-width: 900px;
+  box-shadow: 0 4px 24px rgba(54, 20, 80, 0.22); /* darker purple shadow */
+  padding: 2rem 1rem;
+}
+
+
+.navbar {
+  width: 100%;
+  background: #24143a;
+  padding: 1rem 0;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+
+
+.navbar span {
+  color: #b0b3b8;
+  margin: 0 1rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 4px #361450;
+  font-size: 1.1rem;
+  transition: color 0.2s;
+  cursor: pointer;
+  background: none;
+  outline: none;
+  border: none;
+}
+.navbar span:hover {
+  color: #6c2eb6;
+}
+
+
+.hero-title {
+  font-size: 3rem;
+  color: #361450;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 8px #2a2c31;
+}
+
+
+.hero-desc {
+  font-size: 1.25rem;
+  color: #b0b3b8;
+  margin-bottom: 2rem;
+}
+
+
+.cta-btn {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  background: #361450;
+  color: #b0b3b8;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(54,20,80,0.2);
+  transition: background 0.2s, transform 0.2s;
+}
+.cta-btn:hover {
+  background: #24143a;
+  color: #fff;
+  transform: translateY(-2px) scale(1.04);
+}
+
+
+.features-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+
+
+.feature-card {
+  background: #23242a;
+  padding: 1.5rem;
+  border-radius: 10px;
+  width: 250px;
+  box-shadow: 0 2px 8px rgba(54,20,80,0.12);
+  transition: box-shadow 0.2s, transform 0.2s;
+  outline: none;
+  border: none;
+}
+.feature-card:hover {
+  box-shadow: 0 6px 18px rgba(54,20,80,0.22);
+  transform: translateY(-4px) scale(1.03);
+}
+
+
+.feature-card h2 {
+  color: #6c2eb6;
+  margin-bottom: 0.5rem;
+}
+
+
+.explore-text {
+  color: #b0b3b8;
+  font-size: 1rem;
+}
+.explore-text span {
+  color: #6c2eb6;
+  text-decoration: underline;
+  cursor: pointer;
+  margin: 0 0.2rem;
+  transition: color 0.2s;
+}
+.explore-text span:hover {
+  color: #361450;
+}
 .App {
   text-align: center;
+  
 }
 
 .App-logo {
@@ -14,7 +135,6 @@
 }
 
 .App-header {
-  background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

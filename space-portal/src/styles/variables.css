@@ -1,0 +1,13 @@
+:root {
+  --bg: #000000;             /* black */
+  --panel: #2f2f32;          /* deep slate grey */
+  --text: #f0ead6;           /* eggshell off-white */
+  --muted: #b8b5ad;          /* muted grey-beige */
+  --accent: #5b21b6;         /* darker purple */
+  --accent-contrast: #ffffff;
+  --border: #3c3c42;
+  --focus: #7c3aed;
+
+  --space: 16px;
+  --radius: 14px;
+}

@@ -1,28 +1,28 @@
-import React from 'react';
-import logo from './logo.svg';
+import { Routes, Route } from 'react-router-dom';
+import NavBar from './components/NavBar';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Flares from './pages/Flares';
 import './App.css';
 
-function App() {
+export default function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Welcome to the fuckin show</h1>
-        <img src={logo} className="App-logo" alt="logo" />
-        <h1>hello world!</h1>
-        <p>
-          Eat <code>src/App.tsx</code> and save to eat.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <NavBar />
+      <main className="container">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/flares" element={<Flares />} />
+        </Routes>
+        
+        
+      </main>
+      <footer>
+        © {new Date().getFullYear()} SpacePortal
+      </footer>
+    </>
   );
 }
-
-export default App;
