@@ -8,6 +8,9 @@ export default function Home(){
             <h1>Welcome to SpacePortal</h1>
             <p>Your hub for space-weather alerts and activity.</p>
         
+            <p style={{ fontSize: '0.8rem', letterSpacing: '0.5px', marginBottom: '1rem', color: '#888', opacity: 0.5 }}>i hate sofiia and kobe</p>
+            <p style={{ fontSize: '0.8rem', letterSpacing: '0.5px', marginBottom: '1rem', color: '#888', opacity: 0.5 }}>drsuo is cool tho</p>
+            
             <div className="grid-cta">
                 <Link to="/login" className="card">
                     <h3 style={{ marginTop: 0 }}>Login</h3>

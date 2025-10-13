@@ -1,0 +1,146 @@
+/* Layout/Container */
+.flares {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space);
+  color: var(--text);
+}
+
+.flares__intro h1 {
+  margin: 0 0 calc(var(--space) / 2);
+}
+
+.flares__intro p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 var(--space);
+}
+
+/* Status */
+.flares__status {
+  margin: var(--space) 0;
+  color: var(--muted);
+}
+.flares__status--error {
+  color: #ffb4b4;
+}
+
+/* List */
+.flares__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.flares__empty {
+  color: var(--muted);
+  padding: var(--space);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+/* Card */
+.flare {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 0.75) var(--space);
+  margin-bottom: calc(var(--space) * 0.75);
+}
+
+/* Header row */
+.flare__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space);
+}
+
+.flare__name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.flare__meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Toggle button */
+.flare__toggle {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 0.45rem 0.8rem;
+  border-radius: calc(var(--radius) - 6px);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.flare__toggle:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--focus);
+}
+.flare__toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.flare__toggle.is-open {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Details */
+.flare__details {
+  margin-top: calc(var(--space) * 0.75);
+  padding-top: calc(var(--space) * 0.5);
+  border-top: 1px solid var(--border);
+}
+
+.flare__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.flare__row--stack {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.flare__label {
+  color: var(--muted);
+  min-width: 7.5rem;
+  font-size: 0.9rem;
+}
+
+.flare__desc {
+  white-space: pre-wrap;
+  color: var(--text);
+}
+
+/* Class badge */
+.flare__badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Optional: tint by class bucket using your palette */
+.badge-A, .badge-B { /* tiny tints for small flares */
+  background: rgba(124, 58, 237, 0.15); /* uses focus hue */
+}
+.badge-C {
+  background: rgba(124, 58, 237, 0.25);
+}
+.badge-M {
+  background: rgba(124, 58, 237, 0.35);
+}
+.badge-X {
+  background: rgba(124, 58, 237, 0.5);
+  color: var(--accent-contrast);
+}

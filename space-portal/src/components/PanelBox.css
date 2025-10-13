@@ -1,0 +1,27 @@
+
+
+
+.panel-box {
+  background: rgba(34,36,40,0.97);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(54,20,80,0.22);
+  padding: 4rem 2.5rem;
+  margin: 2rem;
+  max-width: 900px;
+  min-width: 500px;
+  min-height: 500px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.panel-box__title {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.panel-box__content {
+  width: 100%;
+}

@@ -1,0 +1,70 @@
+.admin-import {
+  /* Removed background and box styling for cleaner look */
+  max-width: none;
+  margin: 0;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit;
+}
+.admin-import h2 {
+  margin-bottom: 1.5rem;
+  color: #fff;
+  text-align: center;
+}
+.admin-import__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space);
+}
+.admin-import__form label {
+  display: flex;
+  flex-direction: column;
+  color: var(--muted);
+  font-size: 1rem;
+}
+.admin-import__form input[type="date"] {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+.admin-import__form input[type="date"]:focus {
+  outline: 2px solid var(--focus);
+}
+.admin-import__form button {
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.admin-import__form button:disabled {
+  background: var(--muted);
+  color: var(--panel);
+  cursor: not-allowed;
+}
+.admin-import__error {
+  margin-top: 1rem;
+  color: #ff4d4f;
+  text-align: center;
+}
+.admin-import__result {
+  margin-top: 2rem;
+  background: var(--bg);
+  padding: 1rem;
+  border-radius: calc(var(--radius) - 4px);
+  color: var(--text);
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.admin-import__result h3 {
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
