@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import './Register.css';
-import { api } from '../../lib/api';
+import { api, RegisterRequest, RegisterResponse } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function Register() {
@@ -19,18 +19,34 @@ export default function Register() {
 		e.preventDefault();
 		setError('');
 		setSuccess('');
+		if (!username.trim()) {
+			setError('Username is required');
+			return;
+		}
+		if (password.length < 6) {
+			setError('Password must be at least 6 characters');
+			return;
+		}
 		if (password !== confirmPassword) {
 			setError('Passwords do not match');
 			return;
 		}
 		setLoading(true);
-		// No API call, just show success and redirect
-		setSuccess('User registered successfully!');
-		setUsername('');
-		setPassword('');
-		setConfirmPassword('');
-		setLoading(false);
-		setTimeout(() => navigate('/login'), 1000);
+		try {
+			const payload: RegisterRequest = { displayName: username, password };
+			const resp: RegisterResponse = await api.register(payload);
+			const message = resp?.message || 'User registered successfully';
+			setSuccess(`${message}. Redirecting to login...`);
+			setUsername('');
+			setPassword('');
+			setConfirmPassword('');
+			// Give user time to read the success (2s)
+			setTimeout(() => navigate('/login'), 2000);
+		} catch (err: any) {
+			setError(err.message || 'Registration failed');
+		} finally {
+			setLoading(false);
+		}
 	}
 
 	return (
@@ -79,7 +95,7 @@ export default function Register() {
 				</div>
 				{error && <div className="register-error">{error}</div>}
 				{success && <div className="register-success">{success}</div>}
-				<button className="register-submit" type="submit" disabled={loading}>
+				<button className="register-submit" type="submit" disabled={loading || !username || !password || !confirmPassword}>
 					{loading ? 'Registering...' : 'Register'}
 				</button>
 				<div className="register-footer">

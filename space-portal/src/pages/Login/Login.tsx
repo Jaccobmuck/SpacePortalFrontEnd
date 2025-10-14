@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { api } from '../../lib/api';
+import { api, LoginResponse } from '../../lib/api';
 import './Login.css';
 
 export default function Login() {
@@ -17,10 +17,17 @@ export default function Login() {
     setError('');
     setSuccess('');
     setLoading(true);
-    // No API call, just show success and redirect
-    setSuccess('Login successful!');
-    setLoading(false);
-    setTimeout(() => navigate('/'), 1000);
+    try {
+      const resp: LoginResponse = await api.login({ displayName, password });
+      // Show immediate success then keep user informed about redirect
+      setSuccess(`Welcome ${resp.user.displayName}! Redirecting to home page...`);
+      // Extended delay (additional 2 seconds from previous 0.5s => 2500ms total)
+      setTimeout(() => navigate('/'), 2500);
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -65,7 +72,7 @@ export default function Login() {
         <button
           className="login-submit"
           type="submit"
-          disabled={loading}
+          disabled={loading || !displayName || !password}
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
