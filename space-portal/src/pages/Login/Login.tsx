@@ -1,17 +1,26 @@
+// React hooks and routing utilities
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+// Shared API helper and response types
 import { api, LoginResponse } from '../../lib/api';
+
+// Page-specific styles
 import './Login.css';
 
 export default function Login() {
+  // Local component state for form and feedback
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+
+  // Router navigation hook
   const navigate = useNavigate();
 
+  // Submit handler: authenticate against backend and redirect
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -22,7 +31,9 @@ export default function Login() {
       // Show immediate success then keep user informed about redirect
       setSuccess(`Welcome ${resp.user.displayName}! Redirecting to home page...`);
       // Extended delay (additional 2 seconds from previous 0.5s => 2500ms total)
-      setTimeout(() => navigate('/'), 2500);
+      setTimeout(() => {
+        navigate('/');
+      }, 2500);
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -60,7 +71,9 @@ export default function Login() {
           <button
             type="button"
             className="show-password-btn"
-            onClick={() => setShowPassword((s) => !s)}
+            onClick={() => {
+              setShowPassword((s) => !s);
+            }}
           >
             {showPassword ? 'Hide' : 'Show'}
           </button>

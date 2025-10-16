@@ -1,15 +1,33 @@
+// Accessible, resilient image carousel with autoplay, keyboard, and touch support
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
+// Component stylesheet
 import './Carousel.css';
 
 interface CarouselProps {
+  // Array of image URLs to display
   images: string[];
-  intervalMs?: number;          // autoplay interval (default 5000)
-  pauseOnHover?: boolean;       // pause autoplay when hovered (default true)
-  startIndex?: number;          // initial slide index
-  className?: string;           // optional extra class
-  showDots?: boolean;           // show navigation dots (default true)
-  showArrows?: boolean;         // show prev/next arrows (default true)
-  ariaLabel?: string;           // accessible label for the carousel region
+
+  // Autoplay interval in milliseconds (default 5000)
+  intervalMs?: number;
+
+  // Whether to pause autoplay on pointer hover (default true)
+  pauseOnHover?: boolean;
+
+  // Initial slide index when mounting
+  startIndex?: number;
+
+  // Optional extra CSS class on root
+  className?: string;
+
+  // Show navigation dots (default true)
+  showDots?: boolean;
+
+  // Show prev/next arrow buttons (default true)
+  showArrows?: boolean;
+
+  // Accessible label for carousel region
+  ariaLabel?: string;
 }
 
 const Carousel: React.FC<CarouselProps> = ({
@@ -22,17 +40,36 @@ const Carousel: React.FC<CarouselProps> = ({
   showArrows = true,
   ariaLabel = 'Image carousel'
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(() => Math.min(Math.max(startIndex, 0), images.length - 1));
+  // Current slide index (clamped to available images)
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    return Math.min(Math.max(startIndex, 0), images.length - 1);
+  });
+
+  // Autoplay paused state (e.g., on hover)
   const [isPaused, setIsPaused] = useState(false);
+
+  // Indices that failed to load (to optionally skip)
   const [failed, setFailed] = useState<Set<number>>(new Set());
+
+  // Loading state for current/next image preloads
   const [loading, setLoading] = useState(true);
+
+  // Track per-index error counts
   const errorCounts = useRef<Record<number, number>>({});
+
+  // Touch gesture tracking
   const touchStartX = useRef<number | null>(null);
+
+  // Ref to the focus scope for keyboard navigation
   const focusRef = useRef<HTMLDivElement | null>(null);
 
+  // Move to the requested index (wrapping), skipping failed images when possible
   const goTo = useCallback((idx: number) => {
     setCurrentIndex((prev) => {
-      if (images.length === 0) return prev;
+      if (images.length === 0) {
+        return prev;
+      }
+
       const nonFailedCount = images.length - failed.size;
       let candidate = (idx + images.length) % images.length;
 
@@ -45,9 +82,11 @@ const Carousel: React.FC<CarouselProps> = ({
           guard++;
         }
       }
+
       if (candidate !== prev) {
         console.debug('[Carousel] advancing to index', candidate);
       }
+
       return candidate;
     });
   }, [images.length, failed]);
@@ -57,57 +96,105 @@ const Carousel: React.FC<CarouselProps> = ({
 
   // Autoplay
   useEffect(() => {
-    if (images.length <= 1) return; // no need to autoplay with 0/1 image
-    if (isPaused) return;
+    // No need to autoplay with <= 1 image
+    if (images.length <= 1) {
+      return;
+    }
+
+    // Respect pause state
+    if (isPaused) {
+      return;
+    }
+
+    // Schedule next slide advance
     const id = setTimeout(() => {
       nextSlide();
     }, intervalMs);
-    return () => clearTimeout(id);
+
+    // Cleanup timeout on dependency change/unmount
+    return () => {
+      clearTimeout(id);
+    };
   }, [currentIndex, images.length, intervalMs, isPaused, nextSlide]);
 
   // Preload current image (and next) to reduce flicker
   useEffect(() => {
-    if (!images.length) return;
+    if (!images.length) {
+      return;
+    }
+
     setLoading(true);
+
     const currentSrc = images[currentIndex];
     const nextSrc = images[(currentIndex + 1) % images.length];
     const preload = [currentSrc, nextSrc].filter(Boolean);
+
     let cancelled = false;
     let loadedCount = 0;
-    preload.forEach(src => {
+
+    preload.forEach((src) => {
       const idx = images.indexOf(src);
       const img = new Image();
       img.crossOrigin = 'anonymous';
+
       img.onload = () => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         console.debug('[Carousel] loaded', idx, src);
         loadedCount++;
+
         if (failed.has(idx)) {
           // Remove from failed if it later loads
-            setFailed(f => { const clone = new Set(f); clone.delete(idx); return clone; });
+          setFailed((f) => {
+            const clone = new Set(f);
+            clone.delete(idx);
+            return clone;
+          });
         }
-        if (loadedCount === preload.length) setLoading(false);
+
+        if (loadedCount === preload.length) {
+          setLoading(false);
+        }
       };
+
       img.onerror = () => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         console.warn('[Carousel] error loading', idx, src);
         errorCounts.current[idx] = (errorCounts.current[idx] || 0) + 1;
+
         if (errorCounts.current[idx] >= 2) {
-          setFailed(f => new Set(f).add(idx));
+          setFailed((f) => new Set(f).add(idx));
         }
+
         setLoading(false);
       };
+
       img.src = src;
     });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentIndex, images, failed]);
 
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!focusRef.current || !focusRef.current.contains(document.activeElement)) return;
-      if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); nextSlide(); }
+      // Only handle keys when focus is within the carousel
+      if (!focusRef.current || !focusRef.current.contains(document.activeElement)) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        nextSlide();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -115,21 +202,38 @@ const Carousel: React.FC<CarouselProps> = ({
 
   // Touch / swipe support
   const onTouchStart = (e: React.TouchEvent) => {
+    // Record starting X position
     touchStartX.current = e.touches[0].clientX;
   };
+
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current == null) return;
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(delta) > 50) {
-      if (delta > 0) prevSlide(); else nextSlide();
+    if (touchStartX.current == null) {
+      return;
     }
+
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) {
+        prevSlide();
+      } else {
+        nextSlide();
+      }
+    }
+
     touchStartX.current = null;
   };
 
-  const containerProps = pauseOnHover ? {
-    onMouseEnter: () => setIsPaused(true),
-    onMouseLeave: () => setIsPaused(false)
-  } : {};
+  const containerProps = pauseOnHover
+    ? {
+        onMouseEnter: () => {
+          setIsPaused(true);
+        },
+        onMouseLeave: () => {
+          setIsPaused(false);
+        }
+      }
+    : {};
 
   return (
     <div
@@ -175,9 +279,11 @@ const Carousel: React.FC<CarouselProps> = ({
                   crossOrigin="anonymous"
                   onError={() => {
                     console.warn('[Carousel] inline <img> error', idx, src);
-                    setFailed(f => new Set(f).add(idx));
+                    setFailed((f) => new Set(f).add(idx));
                     // Wait a tick before advancing to avoid rapid loops
-                    setTimeout(() => nextSlide(), 250);
+                    setTimeout(() => {
+                      nextSlide();
+                    }, 250);
                   }}
                 />
               )}

@@ -1,3 +1,4 @@
+// Render a single space event row with expandable details
 import React from 'react';
 
 export interface SpaceEvent {
@@ -20,9 +21,13 @@ export interface SpaceEventItemProps {
 }
 
 function formatDate(dateStr?: string) {
-  if (!dateStr) return '';
+  if (!dateStr) {
+    return '';
+  }
   const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+  if (isNaN(d.getTime())) {
+    return dateStr;
+  }
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
@@ -37,7 +42,9 @@ export const SpaceEventItem: React.FC<SpaceEventItemProps> = ({
   isOpen,
   onToggle
 }) => {
-  const flareClass = extractClass ? extractClass(event.name, event.description) : event.classType;
+  const flareClass = extractClass
+    ? extractClass(event.name, event.description)
+    : event.classType;
 
   return (
     <li className="flare">
@@ -46,12 +53,17 @@ export const SpaceEventItem: React.FC<SpaceEventItemProps> = ({
           <div className="flare__name">{event.name || 'Unnamed Event'}</div>
           <div className="flare__meta">
             {event.startAt && event.endAt ? (
-              <>Event was seen from <strong>{formatDate(event.startAt)}</strong> to <strong>{formatDate(event.endAt)}</strong></>
+              <>
+                Event was seen from <strong>{formatDate(event.startAt)}</strong> to <strong>{formatDate(event.endAt)}</strong>
+              </>
             ) : (
               <>Timing unknown</>
             )}
             {event.occuredAt && (
-              <span> &mdash; peaked at <strong>{formatDate(event.occuredAt)}</strong></span>
+              <span>
+                {' '}
+                &mdash; peaked at <strong>{formatDate(event.occuredAt)}</strong>
+              </span>
             )}
           </div>
         </div>

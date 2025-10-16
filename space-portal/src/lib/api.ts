@@ -43,6 +43,23 @@ export interface RegisterResponseDTO {
   // If backend just returns text, we'll surface it as message.
 }
 
+// DONKI import result (backend: DONKIImportController.ImportFlares)
+export interface DonkiImportResult {
+  imported: number;
+  capped?: boolean;
+  totalAvailable?: number;
+  range?: { start?: string; end?: string };
+  note?: string;
+  message?: string;
+}
+
+// Minimal user shape used by Admin page
+export interface AdminUserDTO {
+  userId: number;
+  displayName: string;
+  roleId: number;
+}
+
 function authHeader() {
   return authToken ? { Authorization: `Bearer ${authToken}` } : {};
 }
@@ -141,6 +158,19 @@ export const api = {
   setToken,
   getToken: () => authToken,
   tokenStorageKey: TOKEN_STORAGE_KEY,
+  // Admin helpers
+  async getUsers() {
+    return request<AdminUserDTO[]>('/api/User/GetUsers', 'GET');
+  },
+  async importDonkiFlares(params?: { start?: string; end?: string }) {
+    const q: string[] = [];
+    if (params?.start) q.push(`start=${encodeURIComponent(params.start)}`);
+    if (params?.end) q.push(`end=${encodeURIComponent(params.end)}`);
+    const qs = q.length ? `?${q.join('&')}` : '';
+    // POST with no body
+    return request<DonkiImportResult>(`/api/import/donki/flares${qs}`, 'POST');
+  },
 };
 
 export type { LoginResponseDTO as LoginResponse, RegisterRequestDTO as RegisterRequest, RegisterResponseDTO as RegisterResponse };
+// Interfaces above are already exported; no need to re-export types here.

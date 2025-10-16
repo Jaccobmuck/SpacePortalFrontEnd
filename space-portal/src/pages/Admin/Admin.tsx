@@ -1,33 +1,31 @@
+// Admin page: user list and DONKI flare import tools
 import React, { useState, useEffect } from 'react';
 import PanelBox from '../../components/PanelBox';
 import './Admin.css';
+import { api, type AdminUserDTO, type DonkiImportResult } from '../../lib/api';
 
 export default function Admin() {
   // Users fetched from backend
-  const [users, setUsers] = useState<{ userId: number; displayName: string; roleId: number }[]>([]);
+  const [users, setUsers] = useState<AdminUserDTO[]>([]);
   useEffect(() => {
-    fetch('https://localhost:7178/api/User/GetUsers')
-      .then(res => res.json())
-      .then(data => setUsers(data))
-      .catch(() => setUsers([]));
+    api.getUsers()
+      .then((res) => {
+        setUsers(res);
+      })
+      .catch(() => {
+        setUsers([]);
+      });
   }, []);
 
   // Import panel state
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{
-    imported: number;
-    capped?: boolean;
-    totalAvailable?: number;
-    range?: { start?: string; end?: string };
-    note?: string;
-    message?: string;
-  } | null>(null);
+  const [result, setResult] = useState<DonkiImportResult | null>(null);
   const [error, setError] = useState('');
 
-  // Dummy import handler for demo
-  function handleImport(e: React.FormEvent) {
+  // Import handler
+  async function handleImport(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -35,38 +33,37 @@ export default function Admin() {
 
     // Format date as yyyy-mm-dd for backend
     function toYMD(dateStr: string) {
-      if (!dateStr) return '';
+      if (!dateStr) {
+        return '';
+      }
       const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return '';
+      if (isNaN(d.getTime())) {
+        return '';
+      }
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    const params = [];
+    const params: { start?: string; end?: string } = {};
     const startYMD = toYMD(start);
     const endYMD = toYMD(end);
-    if (startYMD) params.push(`start=${encodeURIComponent(startYMD)}`);
-    if (endYMD) params.push(`end=${encodeURIComponent(endYMD)}`);
-    const query = params.length ? `?${params.join('&')}` : '';
+    if (startYMD) {
+      params.start = startYMD;
+    }
+    if (endYMD) {
+      params.end = endYMD;
+    }
 
-    fetch(`https://localhost:7178/api/import/donki/flares${query}`, {
-      method: 'POST'
-    })
-      .then(async res => {
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.message || 'Import failed');
-        } else {
-          setResult(data);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Network error');
-        setLoading(false);
-      });
+    try {
+      const data = await api.importDonkiFlares(params);
+      setResult(data);
+    } catch (err: any) {
+      setError(err?.message || 'Import failed');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -120,10 +117,14 @@ export default function Admin() {
                   Import capped at {result.totalAvailable} records (max {result.imported} imported)
                 </div>
               )}
-              <div>Total Available: {result.totalAvailable}</div>
-              <div>
-                Date Range: {result.range?.start?.substring(0, 10)} to {result.range?.end?.substring(0, 10)}
-              </div>
+              {typeof result.totalAvailable === 'number' && (
+                <div>Total Available: {result.totalAvailable}</div>
+              )}
+              {(result.range?.start || result.range?.end) && (
+                <div>
+                  Date Range: {result.range?.start?.substring(0, 10)} to {result.range?.end?.substring(0, 10)}
+                </div>
+              )}
               {result.note && <div>Note: {result.note}</div>}
               {result.message && <div>Message: {result.message}</div>}
             </div>

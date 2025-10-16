@@ -1,5 +1,6 @@
-// This file defines the Flares page, which fetches and displays solar flare events with details and classification.
-// It uses React hooks for state and effects, and provides expandable details for each event.
+// Flares page
+// Fetches and displays solar flare events with classification and expandable details.
+// Implements filter by class and pagination.
 
 import React, { useEffect, useState } from 'react'; // Import React hooks for managing state and side effects
 import { api } from '../../../lib/api'; // Import API utility for making HTTP requests
@@ -20,7 +21,9 @@ type Event = {
 };
 
 function extractFlareClass(text?: string): string | null {
-  if (!text) return null;
+  if (!text) {
+    return null;
+  }
   const m = text.toUpperCase().match(/\b([ABCMX])\s*\d+(?:\.\d+)?\b/);
   return m ? m[0].replace(/\s+/g, '') : null;
 }
@@ -30,12 +33,24 @@ function explainClassBucket(classStr?: string | null): string {
     return 'Class not provided. Typical classification uses A, B, C, M, X with numbers indicating strength within the class.';
   }
   switch (classStr[0].toUpperCase()) {
-    case 'A': return 'A-class: very small flares; weakest category, rarely impactful.';
-    case 'B': return 'B-class: small flares; minimal effects.';
-    case 'C': return 'C-class: common, modest flares; minor near-Earth effects.';
-    case 'M': return 'M-class: medium/strong; can cause shortwave radio blackouts at high latitudes.';
-    case 'X': return 'X-class: strongest; can cause global radio blackouts and radiation storms.';
-    default:  return 'Unknown class.';
+    case 'A': {
+      return 'A-class: very small flares; weakest category, rarely impactful.';
+    }
+    case 'B': {
+      return 'B-class: small flares; minimal effects.';
+    }
+    case 'C': {
+      return 'C-class: common, modest flares; minor near-Earth effects.';
+    }
+    case 'M': {
+      return 'M-class: medium/strong; can cause shortwave radio blackouts at high latitudes.';
+    }
+    case 'X': {
+      return 'X-class: strongest; can cause global radio blackouts and radiation storms.';
+    }
+    default:  {
+      return 'Unknown class.';
+    }
   }
 }
 
@@ -102,7 +117,10 @@ export default function Flares() {
         <select
           id="classFilter"
           value={classFilter}
-          onChange={e => { setClassFilter(e.target.value); setPage(1); }} // reset to page 1 on filter change
+          onChange={e => {
+            setClassFilter(e.target.value);
+            setPage(1); // reset to page 1 on filter change
+          }}
           style={{ padding: '0.5rem', borderRadius: '6px', background: '#23242a', color: '#e3e3e3', border: 'none' }}
         >
           <option value="">All</option>

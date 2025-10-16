@@ -1,4 +1,4 @@
-
+// Registration page: create a new account
 import React, { useState } from 'react';
 import './Register.css';
 import { api, RegisterRequest, RegisterResponse } from '../../lib/api';
@@ -15,6 +15,7 @@ export default function Register() {
 	const [success, setSuccess] = useState('');
 	const navigate = useNavigate();
 
+	// Submit handler: client-side validation then backend request
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		setError('');
@@ -41,7 +42,9 @@ export default function Register() {
 			setPassword('');
 			setConfirmPassword('');
 			// Give user time to read the success (2s)
-			setTimeout(() => navigate('/login'), 2000);
+			setTimeout(() => {
+				navigate('/login');
+			}, 2000);
 		} catch (err: any) {
 			setError(err.message || 'Registration failed');
 		} finally {
