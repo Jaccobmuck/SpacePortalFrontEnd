@@ -1,20 +1,31 @@
 // src/lib/api.ts
-// Generic API helper with auth token support and typed login endpoint.
+// Generic API helper with auth token support and typed endpoints.
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 const BASE = (process.env.REACT_APP_API_BASE_URL || 'https://localhost:7178').replace(/\/$/, '');
 
 // ---- Auth token handling ----
-let authToken: string | null = null;
 const TOKEN_STORAGE_KEY = 'spaceportal.jwt';
 
-// Load existing token on module import (if any)
-try {
-  const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
-  if (stored) authToken = stored;
-} catch {
-  // ignore (SSR / tests)
+function getStoredToken(): string | null {
+  try {
+    const s = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    if (s) {
+      return s;
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const l = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (l) {
+      return l;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 export interface LoginRequestDTO {
@@ -61,7 +72,8 @@ export interface AdminUserDTO {
 }
 
 function authHeader() {
-  return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+  const token = getStoredToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function request<T>(path: string, method: HttpMethod = 'GET', body?: unknown, skipAuth = false): Promise<T> {
@@ -72,8 +84,11 @@ async function request<T>(path: string, method: HttpMethod = 'GET', body?: unkno
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   };
-  if (!skipAuth && authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+  if (!skipAuth) {
+    const t = getStoredToken();
+    if (t) {
+      headers['Authorization'] = `Bearer ${t}`;
+    }
   }
 
   const res = await fetch(url, {
@@ -114,13 +129,37 @@ async function extractErrorMessage(res: Response): Promise<string | null> {
 }
 
 function setToken(token: string | null) {
-  authToken = token;
+  // Back-compat helper: default to localStorage only
   try {
-    if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    else localStorage.removeItem(TOKEN_STORAGE_KEY);
-  } catch {
-    /* ignore */
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {}
+  try {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {}
+  if (token) {
+    try {
+      sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+    } catch {}
   }
+}
+
+// Preferred helpers for token management
+function setTokenWithMode(token: string | null, opts?: { persist?: 'session' | 'local' }) {
+  const persist = opts?.persist ?? 'session';
+  try { sessionStorage.removeItem(TOKEN_STORAGE_KEY); } catch {}
+  try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch {}
+  if (token) {
+    if (persist === 'session') {
+      try { sessionStorage.setItem(TOKEN_STORAGE_KEY, token); } catch {}
+    } else {
+      try { localStorage.setItem(TOKEN_STORAGE_KEY, token); } catch {}
+    }
+  }
+}
+
+function clearToken() {
+  try { sessionStorage.removeItem(TOKEN_STORAGE_KEY); } catch {}
+  try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch {}
 }
 
 async function login(credentials: LoginRequestDTO): Promise<LoginResponseDTO> {
@@ -130,7 +169,6 @@ async function login(credentials: LoginRequestDTO): Promise<LoginResponseDTO> {
     Password: credentials.password,
   };
   const resp = await request<LoginResponseDTO>('/api/Auth/login', 'POST', payload, true);
-  if (resp?.token) setToken(resp.token);
   return resp;
 }
 
@@ -155,8 +193,9 @@ export const api = {
   // Auth helpers
   login,
   register,
-  setToken,
-  getToken: () => authToken,
+  setToken: setTokenWithMode,
+  getToken: getStoredToken,
+  clearToken,
   tokenStorageKey: TOKEN_STORAGE_KEY,
   // Admin helpers
   async getUsers() {

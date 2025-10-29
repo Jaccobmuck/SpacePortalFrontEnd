@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Shared API helper and response types
 import { api, LoginResponse } from '../../lib/api';
+import { api as API } from '../../lib/api';
 
 // Page-specific styles
 import './Login.css';
@@ -13,6 +14,8 @@ export default function Login() {
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  // Remember me: store JWT in localStorage when checked; sessionStorage otherwise
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -28,6 +31,10 @@ export default function Login() {
     setLoading(true);
     try {
       const resp: LoginResponse = await api.login({ displayName, password });
+      // Persist token depending on user preference
+      if (resp && resp.token) {
+        API.setToken(resp.token, { persist: remember ? 'local' : 'session' });
+      }
       // Show immediate success then keep user informed about redirect
       setSuccess(`Welcome ${resp.user.displayName}! Redirecting to home page...`);
       // Extended delay (additional 2 seconds from previous 0.5s => 2500ms total)
@@ -77,6 +84,21 @@ export default function Login() {
           >
             {showPassword ? 'Hide' : 'Show'}
           </button>
+        </div>
+
+        {/* User account section */}
+        <div className="login-field" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <label htmlFor="remember" className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input
+              id="remember"
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => {
+                setRemember(e.target.checked);
+              }}
+            />
+            Keep me signed in
+          </label>
         </div>
 
         {error && <div className="login-error">{error}</div>}

@@ -20,6 +20,9 @@ export default function NavBar() {
           <NavLink to="/flares" className="btn secondary">
             Flares
           </NavLink>
+          <NavLink to="/account" className="btn secondary">
+            Account
+          </NavLink>
           <NavLink to="/login" className="btn secondary">
             Login
           </NavLink>

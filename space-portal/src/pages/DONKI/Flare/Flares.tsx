@@ -7,8 +7,6 @@ import { api } from '../../../lib/api'; // Import API utility for making HTTP re
 import './Flares.css'; // Import CSS styling for the Flares page
 import { SpaceEventItem } from '../../../components/SpaceEventItem'; // Import global SpaceEventItem component
 
-// ...imports stay the same
-
 type Event = {
   id: number;
   eventTypeId: number;

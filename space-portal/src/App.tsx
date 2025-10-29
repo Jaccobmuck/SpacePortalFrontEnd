@@ -10,6 +10,8 @@ import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import Flares from './pages/DONKI/Flare/Flares';
 import Admin from './pages/Admin/Admin';
+import UserInfo from './pages/User/UserInfo';
+import RequireAdmin from './components/RequireAdmin';
 
 // App-level stylesheet
 import './App.css';
@@ -30,12 +32,20 @@ export default function App() {
           {/* Auth routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/account" element={<UserInfo />} />
 
           {/* Data pages */}
           <Route path="/flares" element={<Flares />} />
 
-          {/* Admin tools */}
-          <Route path="/admin" element={<Admin />} />
+          {/* Admin tools (protected) */}
+          <Route
+            path="/admin"
+            element={
+              <RequireAdmin requiredRole="Admin">
+                <Admin />
+              </RequireAdmin>
+            }
+          />
         </Routes>
       </main>
 
