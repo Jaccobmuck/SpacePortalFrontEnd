@@ -68,3 +68,63 @@
   color: var(--accent);
   margin-bottom: 0.5rem;
 }
+
+/* User drawer styles */
+.admin-user-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+  z-index: 30;
+}
+.admin-user-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.admin-user-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: min(600px, 92vw);
+  background: #15171b;
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 220ms ease;
+  display: flex;
+  flex-direction: column;
+  z-index: 31;
+}
+.admin-user-drawer.open { transform: translateX(0); }
+.admin-user-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.icon-btn {
+  background: transparent;
+  color: #e8eaed;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.admin-user-drawer__body {
+  padding: 16px;
+}
+.admin-user-drawer__meta {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  row-gap: 8px;
+}
+.admin-user-drawer__meta dt { color: var(--muted); }
+.role-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}

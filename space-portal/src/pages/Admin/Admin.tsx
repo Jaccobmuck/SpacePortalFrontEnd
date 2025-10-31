@@ -7,6 +7,12 @@ import { api, type AdminUserDTO, type DonkiImportResult } from '../../lib/api';
 export default function Admin() {
   // Users fetched from backend
   const [users, setUsers] = useState<AdminUserDTO[]>([]);
+  const [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState<AdminUserDTO | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [newRoleId, setNewRoleId] = useState<number | null>(null);
+  const [savingRole, setSavingRole] = useState(false);
+  const [saveError, setSaveError] = useState('');
   useEffect(() => {
     api.getUsers()
       .then((res) => {
@@ -73,19 +79,30 @@ export default function Admin() {
       </div>
       <div className="admin-import" style={{ display: 'flex', gap: '3rem', justifyContent: 'center', alignItems: 'flex-start', flexWrap: 'nowrap' }}>
         <PanelBox title="User Management">
-          <ul style={{ listStyle: 'none', padding: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <input
+              className="input"
+              placeholder="Search by name..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{ maxWidth: 280 }}
+            />
+          </div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {users.length === 0 && <li>No users found.</li>}
-            {users.map(user => (
-              <li key={user.userId} style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>
-                <strong>{user.displayName}</strong> &mdash; {(() => {
-                  switch (user.roleId) {
-                    case 1: return 'Admin';
-                    case 2: return 'User';
-                    case 3: return 'Guest';
-                    default: return 'Unknown';
-                  }
-                })()}
-              </li>
+            {users
+              .filter(u => !filter || u.displayName.toLowerCase().includes(filter.toLowerCase()))
+              .map(user => (
+                <li key={user.userId} style={{ marginBottom: '0.75rem', fontSize: '1.05rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div>
+                    <strong>{user.displayName}</strong>
+                    <span style={{ opacity: 0.7, marginLeft: 8 }}>#{user.userId}</span>
+                    <span style={{ marginLeft: 10, fontSize: '0.95rem', padding: '2px 8px', border: '1px solid var(--border)', borderRadius: 999 }}>{roleLabel(user.roleId)}</span>
+                  </div>
+                  <div>
+                    <button className="btn secondary" onClick={() => { setSelected(user); setNewRoleId(user.roleId); setSaveError(''); setDrawerOpen(true); }}>Manage</button>
+                  </div>
+                </li>
             ))}
           </ul>
         </PanelBox>
@@ -131,6 +148,89 @@ export default function Admin() {
           )}
         </PanelBox>
       </div>
+
+      {/* Right-side drawer for selected user */}
+      {selected && (
+        <>
+          <div
+            className={`admin-user-overlay ${drawerOpen ? 'show' : ''}`}
+            onClick={() => setDrawerOpen(false)}
+          />
+          <aside className={`admin-user-drawer ${drawerOpen ? 'open' : ''}`}>
+            <header className="admin-user-drawer__header">
+              <h3 style={{ margin: 0 }}>Manage User</h3>
+              <button className="icon-btn" aria-label="Close" onClick={() => setDrawerOpen(false)}>×</button>
+            </header>
+            <div className="admin-user-drawer__body">
+              <dl className="admin-user-drawer__meta">
+                <dt>Display Name</dt>
+                <dd>{selected.displayName}</dd>
+                <dt>User ID</dt>
+                <dd>
+                  {selected.userId}
+                  <button
+                    className="btn secondary"
+                    style={{ marginLeft: 8, padding: '4px 8px' }}
+                    onClick={() => navigator.clipboard?.writeText(String(selected.userId))}
+                  >
+                    Copy ID
+                  </button>
+                </dd>
+                <dt>Role</dt>
+                <dd>
+                  <select
+                    className="input"
+                    value={newRoleId ?? selected.roleId}
+                    onChange={(e) => setNewRoleId(Number(e.target.value))}
+                    style={{ maxWidth: 220 }}
+                  >
+                    <option value={1}>Guest</option>
+                    <option value={2}>User</option>
+                    <option value={3}>Admin</option>
+                  </select>
+                </dd>
+              </dl>
+
+              {saveError && (
+                <div className="admin-import__error" style={{ textAlign: 'left' }}>Error: {saveError}</div>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button
+                  className="btn"
+                  disabled={savingRole || newRoleId === null || newRoleId === selected.roleId}
+                  onClick={async () => {
+                    if (newRoleId === null) return;
+                    try {
+                      setSavingRole(true);
+                      setSaveError('');
+                      await api.changeUserRole(selected.userId, newRoleId);
+                      setUsers(prev => prev.map(u => u.userId === selected.userId ? { ...u, roleId: newRoleId } : u));
+                      setSelected(prev => (prev ? { ...prev, roleId: newRoleId } : prev));
+                    } catch (e: any) {
+                      setSaveError(e?.message || 'Failed to change role');
+                    } finally {
+                      setSavingRole(false);
+                    }
+                  }}
+                >
+                  {savingRole ? 'Saving…' : 'Save Changes'}
+                </button>
+                <button className="btn secondary" onClick={() => setDrawerOpen(false)}>Close</button>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
     </>
   );
+}
+
+function roleLabel(roleId: number): string {
+  // Provided mapping: 1 -> Guest, 2 -> User, 3 -> Admin
+  switch (roleId) {
+    case 1: return 'Guest';
+    case 2: return 'User';
+    case 3: return 'Admin';
+    default: return 'Unknown';
+  }
 }

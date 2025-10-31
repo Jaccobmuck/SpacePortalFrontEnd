@@ -1,0 +1,56 @@
+/* Simple dropdown menu for NavBar */
+.menu {
+  position: relative;
+  display: inline-block;
+}
+
+.menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 180px;
+  padding: 8px 0;
+  margin: 0;
+  background: #1b1d22;
+  border: 1px solid #2a2d34;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: none;
+  z-index: 20;
+}
+
+.menu[open] .menu-list {
+  display: block;
+}
+
+.menu-list li {
+  list-style: none;
+}
+
+.menu-link {
+  display: block;
+  padding: 10px 14px;
+  color: #e8eaed;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.menu-link:hover,
+.menu-link.active {
+  background: #2a2d34;
+}
+
+/* Ensure the dropdown aligns nicely inside the header layout */
+.header .nav-links .menu {
+  /* remove extra margin that offset this a few pixels */
+  margin-right: 0;
+}

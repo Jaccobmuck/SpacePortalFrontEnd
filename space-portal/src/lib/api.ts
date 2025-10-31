@@ -29,8 +29,8 @@ function getStoredToken(): string | null {
 }
 
 export interface LoginRequestDTO {
-  displayName: string; // maps to DisplayName on backend (case-insensitive JSON)
-  password: string;    // maps to Password
+  username: string; // maps to Username on backend (case-insensitive JSON)
+  password: string; // maps to Password
 }
 
 export interface LoginResponseDTO {
@@ -44,7 +44,7 @@ export interface LoginResponseDTO {
 
 // Register (backend expects DisplayName + Password; role optional/not used currently)
 export interface RegisterRequestDTO {
-  displayName: string;
+  username: string;
   password: string;
 }
 
@@ -71,6 +71,38 @@ export interface AdminUserDTO {
   roleId: number;
 }
 
+export interface ChangeUserRoleRequest {
+  roleId: number;
+}
+
+// User profile DTOs
+// Raw response from backend (camel-cased by ASP.NET Core): displayName, firstName, lastName, aboutMe, email
+interface RawUserProfileResponse {
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  aboutMe?: string;
+  email?: string;
+}
+
+// Normalized shape used by the app: map displayName -> username
+export interface UserProfileDTO {
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  aboutMe?: string;
+  email?: string;
+}
+
+export interface UpdateUserProfileRequest {
+  // Use camelCase keys; server JSON is case-insensitive
+  username?: string;   // maps to DisplayName
+  firstName?: string;
+  lastName?: string;
+  aboutMe?: string;
+  email?: string;
+}
+
 function authHeader() {
   const token = getStoredToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -78,7 +110,7 @@ function authHeader() {
 
 async function request<T>(path: string, method: HttpMethod = 'GET', body?: unknown, skipAuth = false): Promise<T> {
   const url = `${BASE}${path}`;
-  if (body) console.debug(`[API ${method}] ${url} BODY:`, body);
+  // Avoid logging request bodies to prevent accidental exposure of credentials or PII
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -99,22 +131,23 @@ async function request<T>(path: string, method: HttpMethod = 'GET', body?: unkno
 
   if (!res.ok) {
     const msg = await extractErrorMessage(res);
-    console.debug(`[API ERROR ${res.status}] ${url}`, msg);
+    // Log minimally without payloads
+    console.debug(`[API ERROR ${res.status}] ${url}${msg ? ` :: ${msg}` : ''}`);
     throw new Error(msg || `Request failed: ${res.status} ${res.statusText}`);
   }
 
   // Some endpoints may return no body
   const text = await res.text();
   if (!text) {
-    console.debug(`[API OK ${res.status}] ${url} (no content)`);
+    // No content
     return {} as T;
   }
   try {
     const data = JSON.parse(text) as T;
-    console.debug(`[API OK ${res.status}] ${url}`, data);
+    // Do not log response bodies (may contain sensitive data like tokens)
     return data;
   } catch {
-    console.debug(`[API OK ${res.status}] ${url} (non-JSON)`);
+    // Non-JSON response
     return {} as T;
   }
 }
@@ -155,25 +188,47 @@ function setTokenWithMode(token: string | null, opts?: { persist?: 'session' | '
       try { localStorage.setItem(TOKEN_STORAGE_KEY, token); } catch {}
     }
   }
+  // Notify app of auth change (same-tab updates)
+  try {
+    const isLoggedIn = !!getStoredToken();
+    window.dispatchEvent(new CustomEvent('auth:changed', { detail: { isLoggedIn } }));
+  } catch {
+    // ignore (SSR or environment without window)
+  }
 }
 
 function clearToken() {
   try { sessionStorage.removeItem(TOKEN_STORAGE_KEY); } catch {}
   try { localStorage.removeItem(TOKEN_STORAGE_KEY); } catch {}
+  // Notify app of auth change
+  try {
+    window.dispatchEvent(new CustomEvent('auth:changed', { detail: { isLoggedIn: false } }));
+  } catch {}
 }
 
 async function login(credentials: LoginRequestDTO): Promise<LoginResponseDTO> {
-  // Backend expects PascalCase properties (DisplayName, Password) but default JSON serializer is case-insensitive
+  // Backend currently expects DisplayName + Password
   const payload = {
-    DisplayName: credentials.displayName,
+    DisplayName: credentials.username,
     Password: credentials.password,
   };
-  const resp = await request<LoginResponseDTO>('/api/Auth/login', 'POST', payload, true);
-  return resp;
+  const raw = await request<any>('/api/Auth/login', 'POST', payload, true);
+  // Normalize response casing to our DTO
+  const u = raw?.user ?? {};
+  const normalized: LoginResponseDTO = {
+    token: raw?.token,
+    user: {
+      userId: u.userId ?? u.UserId,
+      displayName: u.displayName ?? u.DisplayName,
+      role: u.role ?? u.Role,
+    },
+  };
+  return normalized;
 }
 
 async function register(payload: RegisterRequestDTO): Promise<RegisterResponseDTO> {
-  const body = { DisplayName: payload.displayName, Password: payload.password };
+  // Backend currently expects DisplayName + Password
+  const body = { DisplayName: payload.username, Password: payload.password };
   // Response might be a string; normalize
   try {
     const resp = await request<any>('/api/Auth/register', 'POST', body, true);
@@ -199,7 +254,13 @@ export const api = {
   tokenStorageKey: TOKEN_STORAGE_KEY,
   // Admin helpers
   async getUsers() {
-    return request<AdminUserDTO[]>('/api/User/GetUsers', 'GET');
+    // New backend route: GET /api/users
+    return request<AdminUserDTO[]>('/api/users', 'GET');
+  },
+  async changeUserRole(userId: number, roleId: number) {
+    // New backend route: PUT /api/users/{id}/role with body { roleId }
+    const body: ChangeUserRoleRequest = { roleId };
+    return request<void>(`/api/users/${encodeURIComponent(String(userId))}/role`, 'PUT', body);
   },
   async importDonkiFlares(params?: { start?: string; end?: string }) {
     const q: string[] = [];
@@ -208,6 +269,58 @@ export const api = {
     const qs = q.length ? `?${q.join('&')}` : '';
     // POST with no body
     return request<DonkiImportResult>(`/api/import/donki/flares${qs}`, 'POST');
+  },
+  // Profiles
+  async getUserProfile(id: number): Promise<UserProfileDTO> {
+    const raw = await request<RawUserProfileResponse>(`/api/users/${encodeURIComponent(String(id))}/profile`, 'GET');
+    return {
+      username: raw.displayName,
+      firstName: raw.firstName,
+      lastName: raw.lastName,
+      aboutMe: raw.aboutMe,
+      email: raw.email,
+    };
+  },
+  async updateMyAccount(payload: UpdateUserProfileRequest): Promise<UserProfileDTO> {
+    const body: any = {
+      DisplayName: payload.username,
+      FirstName: payload.firstName,
+      LastName: payload.lastName,
+      AboutMe: payload.aboutMe,
+      Email: payload.email,
+    };
+    const raw = await request<RawUserProfileResponse>(`/api/users/me`, 'PUT', body);
+    return {
+      username: raw.displayName,
+      firstName: raw.firstName,
+      lastName: raw.lastName,
+      aboutMe: raw.aboutMe,
+      email: raw.email,
+    };
+  },
+  async updateUserProfile(id: number, payload: UpdateUserProfileRequest): Promise<void> {
+    // Convert to server-expected keys (DisplayName) while accepting camelCase in UI
+    const body: any = {
+      DisplayName: payload.username,
+      FirstName: payload.firstName,
+      LastName: payload.lastName,
+      AboutMe: payload.aboutMe,
+      Email: payload.email,
+    };
+    return request<void>(`/api/users/${encodeURIComponent(String(id))}/profile`, 'PUT', body);
+  },
+  // Optional convenience helpers for new RESTful users API
+  async getUserById(id: number) {
+    return request<AdminUserDTO>(`/api/users/${encodeURIComponent(String(id))}`, 'GET');
+  },
+  async createUser(payload: { displayName: string; email: string; roleId?: number }) {
+    return request<AdminUserDTO>(`/api/users`, 'POST', payload);
+  },
+  async updateUser(id: number, payload: { displayName?: string; email?: string }) {
+    return request<void>(`/api/users/${encodeURIComponent(String(id))}`, 'PUT', payload);
+  },
+  async deleteUser(id: number) {
+    return request<void>(`/api/users/${encodeURIComponent(String(id))}`, 'DELETE');
   },
 };
 

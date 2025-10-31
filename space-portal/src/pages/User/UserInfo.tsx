@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, type UserProfileDTO } from '../../lib/api';
+import './UserInfo.css';
 
 // Lightweight JWT decoder (no crypto validation; client-side display only)
 function decodeJwt(token: string): Record<string, any> | null {
@@ -47,13 +48,51 @@ export default function UserInfo() {
   const navigate = useNavigate();
   const token = api.getToken();
   const claims = useMemo(() => (token ? decodeJwt(token) : null), [token]);
+  // Storage mode no longer displayed in UI, but kept here if needed for future decisions
   const mode = getStorageMode();
+  const [profile, setProfile] = useState<UserProfileDTO | null>(null);
+  const [profileError, setProfileError] = useState<string>('');
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ username: '', email: '', firstName: '', lastName: '', aboutMe: '' });
 
   const handleLogout = () => {
     api.clearToken();
     navigate('/login');
   };
 
+  // Heuristic extraction for common claim keys from ASP.NET Core + JWT
+  const userIdClaim = (
+    claims?.userId ||
+    claims?.UserId ||
+    claims?.nameid ||
+    claims?.sub ||
+    claims?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+  ) as string | number | undefined;
+
+  // Load profile if we have a user id from claims
+  useEffect(() => {
+    const idNum = typeof userIdClaim === 'string' ? Number(userIdClaim) : typeof userIdClaim === 'number' ? userIdClaim : NaN;
+    if (!token || !claims || !idNum || Number.isNaN(idNum)) {
+      setProfile(null);
+      return;
+    }
+    let cancelled = false;
+    setProfileError('');
+    api.getUserProfile(idNum)
+      .then((p) => { if (!cancelled) { setProfile(p); setForm({
+        username: p.username ?? '',
+        email: p.email ?? '',
+        firstName: p.firstName ?? '',
+        lastName: p.lastName ?? '',
+        aboutMe: p.aboutMe ?? ''
+      }); } })
+      .catch((e: any) => { if (!cancelled) { setProfile(null); setProfileError(e?.message || 'Failed to load profile'); } });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  // After hooks: render unauthenticated state
   if (!token) {
     return (
       <section>
@@ -67,59 +106,114 @@ export default function UserInfo() {
     );
   }
 
-  const exp = claims?.exp as number | undefined;
-  const iat = claims?.iat as number | undefined;
-  const nowSec = Math.floor(Date.now() / 1000);
-  const secondsLeft = typeof exp === 'number' ? Math.max(0, exp - nowSec) : undefined;
-
-  // Heuristic extraction for common claim keys from ASP.NET Core + JWT
+  // Remaining claim fallbacks for UI only (non-sensitive)
   const displayName = (claims?.displayName || claims?.name || claims?.unique_name) as string | undefined;
-  const role = (claims?.role || claims?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']) as string | undefined;
-  const userId = (claims?.userId || claims?.nameid || claims?.sub) as string | number | undefined;
+  const emailFromClaims = (claims?.email || claims?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress']) as string | undefined;
 
   return (
-    <section>
-      <h1>Your account</h1>
-      <p>Signed in using <strong>{mode === 'session' ? 'Session' : mode === 'local' ? 'Persistent' : 'Unknown'}</strong> storage.</p>
-
-      <div className="panel" style={{ padding: 16, marginBottom: 16 }}>
-        <h2 style={{ marginTop: 0 }}>Profile</h2>
-        <dl style={{ display: 'grid', gridTemplateColumns: '180px 1fr', rowGap: 8 }}>
-          <dt>Display name</dt>
-          <dd>{displayName ?? '—'}</dd>
-
-          <dt>Role</dt>
-          <dd>{role ?? '—'}</dd>
-
-          <dt>User ID</dt>
-          <dd>{userId ?? '—'}</dd>
-
-          <dt>Issued at</dt>
-          <dd>{formatUnixTime(iat) ?? '—'}</dd>
-
-          <dt>Expires</dt>
-          <dd>
-            {formatUnixTime(exp) ?? '—'}
-            {typeof secondsLeft === 'number' && (
-              <span style={{ marginLeft: 8, opacity: 0.8 }}>
-                ({Math.ceil(secondsLeft / 60)} min left)
-              </span>
-            )}
-          </dd>
-        </dl>
-
-        <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
+    <section className="account-page" style={{ maxWidth: 900, margin: '0 auto', padding: '1rem' }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>Your account</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {!editing && (
+            <button onClick={() => setEditing(true)} className="btn">Edit</button>
+          )}
+          {editing && (
+            <>
+              <button
+                className="btn"
+                disabled={saving}
+                onClick={async () => {
+                  try {
+                    setSaving(true);
+                    setProfileError('');
+                    const updated = await api.updateMyAccount({
+                      username: form.username.trim() || undefined,
+                      email: form.email.trim() || undefined,
+                      firstName: form.firstName.trim() || undefined,
+                      lastName: form.lastName.trim() || undefined,
+                      aboutMe: form.aboutMe.trim() || undefined,
+                    });
+                    // Refresh local profile state from server response
+                    setProfile(updated);
+                    setForm({
+                      username: updated.username ?? '',
+                      email: updated.email ?? '',
+                      firstName: updated.firstName ?? '',
+                      lastName: updated.lastName ?? '',
+                      aboutMe: updated.aboutMe ?? '',
+                    });
+                    setEditing(false);
+                  } catch (e: any) {
+                    setProfileError(e?.message || 'Failed to save profile');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              <button className="btn secondary" disabled={saving} onClick={() => {
+                // Reset form from last loaded profile and exit editing
+                setForm({
+                  username: profile?.username ?? displayName ?? '',
+                  email: profile?.email ?? emailFromClaims ?? '',
+                  firstName: profile?.firstName ?? '',
+                  lastName: profile?.lastName ?? '',
+                  aboutMe: profile?.aboutMe ?? ''
+                });
+                setEditing(false);
+              }}>Cancel</button>
+            </>
+          )}
           <button onClick={handleLogout} className="btn danger">Logout</button>
-          <Link to="/admin" className="btn secondary">Admin</Link>
         </div>
-      </div>
+      </header>
 
-      <details>
-        <summary>View raw token claims</summary>
-        <pre style={{ overflowX: 'auto', background: '#1113', padding: 12, borderRadius: 6 }}>
-{JSON.stringify(claims, null, 2)}
-        </pre>
-      </details>
+      <div className="panel" style={{ padding: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Profile</h3>
+        {!editing ? (
+          <dl style={{ display: 'grid', gridTemplateColumns: '180px 1fr', rowGap: 8 }}>
+            <dt>Username</dt>
+            <dd>{profile?.username ?? displayName ?? '—'}</dd>
+
+            <dt>Email</dt>
+            <dd>{profile?.email ?? emailFromClaims ?? '—'}</dd>
+
+            <dt>First name</dt>
+            <dd>{profile?.firstName ?? '—'}</dd>
+
+            <dt>Last name</dt>
+            <dd>{profile?.lastName ?? '—'}</dd>
+
+            <dt>About me</dt>
+            <dd style={{ whiteSpace: 'pre-wrap' }}>{profile?.aboutMe ?? '—'}</dd>
+          </dl>
+        ) : (
+          <form onSubmit={(e) => { e.preventDefault(); }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', rowGap: 12, alignItems: 'center' }}>
+              <label>Username</label>
+              <input className="input" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} maxLength={100} />
+
+              <label>Email</label>
+              <input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} maxLength={200} />
+
+              <label>First name</label>
+              <input className="input" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} maxLength={100} />
+
+              <label>Last name</label>
+              <input className="input" value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} maxLength={100} />
+
+              <label>About me</label>
+              <textarea className="input" rows={4} value={form.aboutMe} onChange={e => setForm(f => ({ ...f, aboutMe: e.target.value }))} maxLength={1000} />
+            </div>
+          </form>
+        )}
+
+        {profileError && (
+          <div className="admin-import__error" style={{ marginTop: 8, textAlign: 'left' }}>Error: {profileError}</div>
+        )}
+      </div>
     </section>
   );
 }

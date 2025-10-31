@@ -12,6 +12,8 @@ import Flares from './pages/DONKI/Flare/Flares';
 import Admin from './pages/Admin/Admin';
 import UserInfo from './pages/User/UserInfo';
 import RequireAdmin from './components/RequireAdmin';
+import About from './pages/About';
+import Contact from './pages/Contact';
 
 // App-level stylesheet
 import './App.css';
@@ -36,6 +38,8 @@ export default function App() {
 
           {/* Data pages */}
           <Route path="/flares" element={<Flares />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
 
           {/* Admin tools (protected) */}
           <Route

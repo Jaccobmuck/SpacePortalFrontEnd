@@ -34,7 +34,7 @@ export default function Register() {
 		}
 		setLoading(true);
 		try {
-			const payload: RegisterRequest = { displayName: username, password };
+			const payload: RegisterRequest = { username, password };
 			const resp: RegisterResponse = await api.register(payload);
 			const message = resp?.message || 'User registered successfully';
 			setSuccess(`${message}. Redirecting to login...`);

@@ -11,7 +11,7 @@ import './Login.css';
 
 export default function Login() {
   // Local component state for form and feedback
-  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   // Remember me: store JWT in localStorage when checked; sessionStorage otherwise
@@ -30,7 +30,7 @@ export default function Login() {
     setSuccess('');
     setLoading(true);
     try {
-      const resp: LoginResponse = await api.login({ displayName, password });
+  const resp: LoginResponse = await api.login({ username, password });
       // Persist token depending on user preference
       if (resp && resp.token) {
         API.setToken(resp.token, { persist: remember ? 'local' : 'session' });
@@ -54,14 +54,14 @@ export default function Login() {
         <h2 className="login-title">Login</h2>
 
         <div className="login-field">
-          <label htmlFor="displayName">Display Name</label>
+          <label htmlFor="username">Username</label>
           <input
             type="text"
-            id="displayName"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            id="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
-            placeholder="Enter your display name"
+            placeholder="Enter your username"
           />
         </div>
 
@@ -107,7 +107,7 @@ export default function Login() {
         <button
           className="login-submit"
           type="submit"
-          disabled={loading || !displayName || !password}
+          disabled={loading || !username || !password}
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
