@@ -30,16 +30,11 @@ export default function Home() {
                 </Link>
             </div>
 
-            {/* Hero carousel */}
+            {/* Hero carousel - auto-fetching APOD recent entries directly */}
             <Carousel
                 showArrows={false}
-                intervalMs={7000}
-                        images={[
-                            'https://images.immediate.co.uk/production/volatile/sites/3/2024/05/How-many-Pokemon-are-there-6434211.jpg',
-                            '/images/leafon.jpg',
-                            '/images/poreon.png',
-                            'https://external-preview.redd.it/2Rn-yHuX9XJDHp1dt-5q9qfUTH0VqWqQZKdcvCbsueY.jpg?width=1080&crop=smart&auto=webp&s=49516e07e15a2e5b79a305de41799edd013fa5c6'
-                        ]}
+                intervalMs={6500}
+                apod={{ limit: 5 }}
             />
         </section>
     );

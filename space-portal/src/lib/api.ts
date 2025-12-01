@@ -75,6 +75,19 @@ export interface ChangeUserRoleRequest {
   roleId: number;
 }
 
+// Astronomy Picture of the Day (APOD) DTO
+// Backend likely returns PascalCase keys (Date, Title, Explanation, Url, HdUrl, MediaType, Copyright)
+// Normalize to camelCase for frontend consumption.
+export interface ApodDto {
+  date: string; // ISO yyyy-MM-dd
+  title: string;
+  explanation?: string;
+  url?: string; // image or video URL (if mediaType === 'image' or 'video')
+  hdUrl?: string;
+  mediaType?: string; // 'image' | 'video' | etc.
+  copyright?: string;
+}
+
 // User profile DTOs
 // Raw response from backend (camel-cased by ASP.NET Core): displayName, firstName, lastName, aboutMe, email
 interface RawUserProfileResponse {
@@ -153,9 +166,21 @@ async function request<T>(path: string, method: HttpMethod = 'GET', body?: unkno
 }
 
 async function extractErrorMessage(res: Response): Promise<string | null> {
+  // Try JSON first (ProblemDetails or custom object)
   try {
-    const data = await res.json();
-    return data?.detail || data?.title || data?.message || data?.error || null;
+    const data = await res.clone().json();
+    if (data && typeof data === 'object') {
+      return (data as any).detail || (data as any).title || (data as any).message || (data as any).error || null;
+    }
+    // If server returned a JSON string (unlikely), surface it
+    if (typeof data === 'string') return data;
+  } catch {
+    // fall through
+  }
+  // Fallback to raw text (e.g., Conflict("Display name already taken."))
+  try {
+    const txt = await res.clone().text();
+    return txt || null;
   } catch {
     return null;
   }
@@ -237,6 +262,22 @@ async function register(payload: RegisterRequestDTO): Promise<RegisterResponseDT
   } catch (e: any) {
     throw e;
   }
+}
+
+// ---- APOD helpers ----
+function normalizeApod(raw: any): ApodDto {
+  if (!raw || typeof raw !== 'object') {
+    return { date: '', title: '' };
+  }
+  return {
+    date: raw.date || raw.Date || '',
+    title: raw.title || raw.Title || '',
+    explanation: raw.explanation || raw.Explanation,
+    url: raw.url || raw.Url,
+    hdUrl: raw.hdUrl || raw.HdUrl || raw.hdurl || raw.HDUrl,
+    mediaType: raw.mediaType || raw.MediaType,
+    copyright: raw.copyright || raw.Copyright,
+  };
 }
 
 export const api = {
@@ -321,6 +362,20 @@ export const api = {
   },
   async deleteUser(id: number) {
     return request<void>(`/api/users/${encodeURIComponent(String(id))}`, 'DELETE');
+  },
+  // APOD endpoints
+  async getApodToday(): Promise<ApodDto> {
+    const raw = await request<any>('/api/apod/today', 'GET');
+    return normalizeApod(raw);
+  },
+  async getApodByDate(date: string): Promise<ApodDto> {
+    // Expect date format yyyy-MM-dd
+    const raw = await request<any>(`/api/apod/${encodeURIComponent(date)}`, 'GET');
+    return normalizeApod(raw);
+  },
+  async getApodRecent(limit = 30): Promise<ApodDto[]> {
+    const raw = await request<any[]>(`/api/apod/recent?limit=${encodeURIComponent(String(limit))}`, 'GET');
+    return Array.isArray(raw) ? raw.map(normalizeApod) : [];
   },
 };
 

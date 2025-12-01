@@ -14,6 +14,7 @@ import UserInfo from './pages/User/UserInfo';
 import RequireAdmin from './components/RequireAdmin';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import ApodPage from './pages/Apod/Apod';
 
 // App-level stylesheet
 import './App.css';
@@ -38,6 +39,7 @@ export default function App() {
 
           {/* Data pages */}
           <Route path="/flares" element={<Flares />} />
+          <Route path="/apod" element={<ApodPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
 

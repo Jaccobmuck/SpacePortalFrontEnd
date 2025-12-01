@@ -1,0 +1,64 @@
+.about { 
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.about__hero {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0b2239 0%, #122d47 60%, #1b3754 100%);
+  color: #fff;
+  padding: 2.25rem 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.about__hero-content h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+}
+
+.about__tagline {
+  margin: 0.25rem 0 1rem 0;
+  opacity: 0.9;
+}
+
+.about__cta { display: flex; gap: 0.5rem; }
+
+.about__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.about__card {
+  background: var(--panel, #0b0e12);
+  border: 1px solid var(--border, #1f2630);
+  border-radius: 12px;
+  padding: 1rem 1rem 1.25rem 1rem;
+}
+
+.about__card h2 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.about__card p { margin-top: 0.5rem; }
+.about__card ul { margin: 0.25rem 0 0 1.25rem; }
+.about__card li { margin: 0.25rem 0; }
+
+.about__link {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.about__footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--muted, #9aa7b2);
+}
+
+/* Buttons inherit existing .btn styles; ensure spacing is nice on wrap */
+@media (max-width: 480px) {
+  .about__cta { flex-wrap: wrap; }
+}

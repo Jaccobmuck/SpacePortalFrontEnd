@@ -107,6 +107,11 @@ export default function NavBar() {
                   DONKI Flares
                 </NavLink>
               </li>
+              <li>
+                <NavLink to="/apod" className={({ isActive }) => `menu-link ${isActive ? 'active' : ''}`} onClick={() => setServicesOpen(false)}>
+                  APOD
+                </NavLink>
+              </li>
               {/* Future items can be added here */}
             </ul>
           </details>

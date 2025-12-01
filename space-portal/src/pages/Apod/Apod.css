@@ -1,0 +1,94 @@
+.apod-page {
+  display: grid;
+  gap: 2rem;
+  padding-block: 1.5rem;
+}
+
+.apod-hero {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.apod-hero-media {
+  width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #0d1b2a;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.apod-meta h2 {
+  margin: 0 0 .5rem;
+  font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.apod-meta small {
+  opacity: .7;
+  font-size: .8rem;
+}
+
+.apod-explanation {
+  font-size: .95rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.apod-recent-section h3 {
+  margin: 0 0 .75rem;
+  font-size: 1.25rem;
+}
+
+.apod-recent-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.apod-thumb {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  background: #132030;
+  padding: .5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  transition: box-shadow .2s, transform .2s;
+}
+.apod-thumb:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.45);
+}
+.apod-thumb img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #0d1b2a;
+}
+.apod-thumb span {
+  font-size: .7rem;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.apod-loading, .apod-error {
+  padding: 1rem;
+  background: #132030;
+  border-radius: 6px;
+  font-size: .9rem;
+}
+
+@media (min-width: 900px) {
+  .apod-hero {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .apod-meta {
+    padding-inline: .5rem;
+  }
+}

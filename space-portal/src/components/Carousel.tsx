@@ -1,325 +1,164 @@
-// Accessible, resilient image carousel with autoplay, keyboard, and touch support
-import React, { useCallback, useEffect, useRef, useState } from "react";
-
-// Component stylesheet
+// Simplified carousel with optional APOD auto-fetch.
+// If `apod` prop is provided, component fetches recent APOD entries directly from backend.
+import React, { useEffect, useState, useCallback } from 'react';
 import './Carousel.css';
+import { api, ApodDto } from '../lib/api';
+
+interface CarouselImageItem {
+  url: string;
+  title?: string;
+  copyright?: string;
+  date?: string;
+}
 
 interface CarouselProps {
-  // Array of image URLs to display
-  images: string[];
-
-  // Autoplay interval in milliseconds (default 5000)
+  images?: string[]; // Legacy static image URLs
   intervalMs?: number;
-
-  // Whether to pause autoplay on pointer hover (default true)
-  pauseOnHover?: boolean;
-
-  // Initial slide index when mounting
-  startIndex?: number;
-
-  // Optional extra CSS class on root
-  className?: string;
-
-  // Show navigation dots (default true)
   showDots?: boolean;
-
-  // Show prev/next arrow buttons (default true)
   showArrows?: boolean;
-
-  // Accessible label for carousel region
+  className?: string;
   ariaLabel?: string;
+  apod?: { limit?: number }; // Enable APOD mode
 }
 
 const Carousel: React.FC<CarouselProps> = ({
   images,
-  intervalMs = 5000,
-  pauseOnHover = true,
-  startIndex = 0,
-  className = '',
+  intervalMs = 6000,
   showDots = true,
   showArrows = true,
-  ariaLabel = 'Image carousel'
+  className = '',
+  ariaLabel = 'Image carousel',
+  apod
 }) => {
-  // Current slide index (clamped to available images)
-  const [currentIndex, setCurrentIndex] = useState(() => {
-    return Math.min(Math.max(startIndex, 0), images.length - 1);
-  });
+  const [items, setItems] = useState<CarouselImageItem[]>([]);
+  const [index, setIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Autoplay paused state (e.g., on hover)
-  const [isPaused, setIsPaused] = useState(false);
+  // Build items when static images passed
+  useEffect(() => {
+    if (images && images.length) {
+      setItems(images.map((u) => ({ url: u })));
+    }
+  }, [images]);
 
-  // Indices that failed to load (to optionally skip)
-  const [failed, setFailed] = useState<Set<number>>(new Set());
-
-  // Loading state for current/next image preloads
-  const [loading, setLoading] = useState(true);
-
-  // Track per-index error counts
-  const errorCounts = useRef<Record<number, number>>({});
-
-  // Touch gesture tracking
-  const touchStartX = useRef<number | null>(null);
-
-  // Ref to the focus scope for keyboard navigation
-  const focusRef = useRef<HTMLDivElement | null>(null);
-
-  // Move to the requested index (wrapping), skipping failed images when possible
-  const goTo = useCallback((idx: number) => {
-    setCurrentIndex((prev) => {
-      if (images.length === 0) {
-        return prev;
-      }
-
-      const nonFailedCount = images.length - failed.size;
-      let candidate = (idx + images.length) % images.length;
-
-      // If we have at least 2 non-failed images, keep skipping failed ones.
-      // If not, allow cycling through failed images so user still sees rotation (with fallback text).
-      if (nonFailedCount >= 2) {
-        let guard = 0;
-        while (failed.has(candidate) && guard < images.length) {
-          candidate = (candidate + 1) % images.length;
-          guard++;
+  // APOD auto-fetch mode
+  useEffect(() => {
+    if (!apod) return;
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const limit = (apod?.limit ?? 5);
+        const list = await api.getApodRecent(limit);
+        const mapped: CarouselImageItem[] = list
+          .filter(a => a.mediaType === 'image')
+          .map((a: ApodDto) => ({
+            url: a.url || a.hdUrl || '',
+            title: a.title,
+            copyright: a.copyright,
+            date: a.date
+          }))
+          .filter(i => !!i.url);
+        if (!cancelled) {
+          setItems(mapped);
+          setIndex(0);
+          if (!mapped.length) setError('No APOD images available');
         }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Failed to load APOD images');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      if (candidate !== prev) {
-        console.debug('[Carousel] advancing to index', candidate);
-      }
-
-      return candidate;
-    });
-  }, [images.length, failed]);
-
-  const prevSlide = useCallback(() => goTo(currentIndex - 1), [currentIndex, goTo]);
-  const nextSlide = useCallback(() => goTo(currentIndex + 1), [currentIndex, goTo]);
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [apod]);
 
   // Autoplay
   useEffect(() => {
-    // No need to autoplay with <= 1 image
-    if (images.length <= 1) {
-      return;
-    }
+    if (items.length <= 1) return;
+    const id = setTimeout(() => setIndex(i => (i + 1) % items.length), intervalMs);
+    return () => clearTimeout(id);
+  }, [items, index, intervalMs]);
 
-    // Respect pause state
-    if (isPaused) {
-      return;
-    }
-
-    // Schedule next slide advance
-    const id = setTimeout(() => {
-      nextSlide();
-    }, intervalMs);
-
-    // Cleanup timeout on dependency change/unmount
-    return () => {
-      clearTimeout(id);
-    };
-  }, [currentIndex, images.length, intervalMs, isPaused, nextSlide]);
-
-  // Preload current image (and next) to reduce flicker
-  useEffect(() => {
-    if (!images.length) {
-      return;
-    }
-
-    setLoading(true);
-
-    const currentSrc = images[currentIndex];
-    const nextSrc = images[(currentIndex + 1) % images.length];
-    const preload = [currentSrc, nextSrc].filter(Boolean);
-
-    let cancelled = false;
-    let loadedCount = 0;
-
-    preload.forEach((src) => {
-      const idx = images.indexOf(src);
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-
-      img.onload = () => {
-        if (cancelled) {
-          return;
-        }
-        console.debug('[Carousel] loaded', idx, src);
-        loadedCount++;
-
-        if (failed.has(idx)) {
-          // Remove from failed if it later loads
-          setFailed((f) => {
-            const clone = new Set(f);
-            clone.delete(idx);
-            return clone;
-          });
-        }
-
-        if (loadedCount === preload.length) {
-          setLoading(false);
-        }
-      };
-
-      img.onerror = () => {
-        if (cancelled) {
-          return;
-        }
-        console.warn('[Carousel] error loading', idx, src);
-        errorCounts.current[idx] = (errorCounts.current[idx] || 0) + 1;
-
-        if (errorCounts.current[idx] >= 2) {
-          setFailed((f) => new Set(f).add(idx));
-        }
-
-        setLoading(false);
-      };
-
-      img.src = src;
+  const goTo = useCallback((i: number) => {
+    setIndex((prev) => {
+      if (!items.length) return prev;
+      const next = ((i % items.length) + items.length) % items.length;
+      return next;
     });
+  }, [items]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [currentIndex, images, failed]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Only handle keys when focus is within the carousel
-      if (!focusRef.current || !focusRef.current.contains(document.activeElement)) {
-        return;
-      }
-
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        prevSlide();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        nextSlide();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [prevSlide, nextSlide]);
-
-  // Touch / swipe support
-  const onTouchStart = (e: React.TouchEvent) => {
-    // Record starting X position
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current == null) {
-      return;
-    }
-
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
-
-    if (Math.abs(delta) > 50) {
-      if (delta > 0) {
-        prevSlide();
-      } else {
-        nextSlide();
-      }
-    }
-
-    touchStartX.current = null;
-  };
-
-  const containerProps = pauseOnHover
-    ? {
-        onMouseEnter: () => {
-          setIsPaused(true);
-        },
-        onMouseLeave: () => {
-          setIsPaused(false);
-        }
-      }
-    : {};
+  const prev = () => goTo(index - 1);
+  const next = () => goTo(index + 1);
 
   return (
     <div
       className={`carousel-container ${className}`.trim()}
       aria-roledescription="carousel"
       aria-label={ariaLabel}
-      ref={focusRef}
-      tabIndex={0}
-      {...containerProps}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
     >
-      {showArrows && (
-        <button
-          type="button"
-          className="carousel-btn prev"
-          onClick={prevSlide}
-          aria-label="Previous slide"
-        >
-          ❮
-        </button>
+      {showArrows && items.length > 1 && (
+        <button type="button" className="carousel-btn prev" onClick={prev} aria-label="Previous slide">❮</button>
       )}
-
       <div className="carousel-viewport">
-        {images.map((src, idx) => {
-          const isActive = idx === currentIndex;
-          return (
-            <div
-              key={idx}
-              className={`carousel-slide ${isActive ? 'active' : ''}`}
-              role="group"
-              aria-roledescription="slide"
-              aria-label={`Slide ${idx + 1} of ${images.length}`}
-              aria-hidden={!isActive}
-            >
-              {isActive && !failed.has(idx) && (
+        {loading && <div className="carousel-loading">Loading...</div>}
+        {!loading && error && <div className="carousel-fallback">{error}</div>}
+        {!loading && !error && !items.length && (
+          <div className="carousel-fallback">No images</div>
+        )}
+        {items.map((img, i) => (
+          <div
+            key={img.url + i}
+            className={`carousel-slide ${i === index ? 'active' : ''}`}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`Slide ${i + 1} of ${items.length}`}
+            aria-hidden={i !== index}
+          >
+            {i === index && (
+              <>
                 <img
-                  src={src}
-                  alt={`Slide ${idx + 1}`}
+                  src={img.url}
+                  alt={img.title || `APOD ${img.date || ''}`}
                   className="carousel-image"
                   loading="lazy"
-                  draggable={false}
-                  crossOrigin="anonymous"
-                  onError={() => {
-                    console.warn('[Carousel] inline <img> error', idx, src);
-                    setFailed((f) => new Set(f).add(idx));
-                    // Wait a tick before advancing to avoid rapid loops
-                    setTimeout(() => {
-                      nextSlide();
-                    }, 250);
-                  }}
                 />
-              )}
-              {isActive && failed.has(idx) && (
-                <div className="carousel-fallback">Image unavailable</div>
-              )}
-            </div>
-          );
-        })}
+                {(img.title || img.copyright) && (
+                  <div style={{
+                    position: 'absolute',
+                    left: 0,
+                    bottom: 0,
+                    width: '100%',
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '.75rem',
+                    background: 'linear-gradient(transparent, rgba(0,0,0,0.65))',
+                    color: '#fff',
+                    textAlign: 'left'
+                  }}>
+                    <strong>{img.title}</strong>{img.copyright ? ` · © ${img.copyright}` : ''}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ))}
       </div>
-
-      {loading && (
-        <div className="carousel-loading" aria-live="polite">Loading image...</div>
+      {showArrows && items.length > 1 && (
+        <button type="button" className="carousel-btn next" onClick={next} aria-label="Next slide">❯</button>
       )}
-
-      {showArrows && (
-        <button
-          type="button"
-          className="carousel-btn next"
-          onClick={nextSlide}
-          aria-label="Next slide"
-        >
-          ❯
-        </button>
-      )}
-
-      {showDots && images.length > 1 && (
+      {showDots && items.length > 1 && (
         <div className="carousel-dots" role="tablist" aria-label="Carousel navigation">
-          {images.map((_, index) => (
+          {items.map((_, i) => (
             <button
-              key={index}
+              key={i}
               type="button"
-              className={`dot ${index === currentIndex ? 'active' : ''}`}
-              aria-label={`Go to slide ${index + 1}`}
-              aria-selected={index === currentIndex}
-              onClick={() => goTo(index)}
+              className={`dot ${i === index ? 'active' : ''}`}
+              aria-label={`Go to slide ${i + 1}`}
+              aria-selected={i === index}
+              onClick={() => goTo(i)}
             />
           ))}
         </div>
