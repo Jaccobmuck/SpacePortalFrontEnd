@@ -1,46 +1,134 @@
-# Getting Started with Create React App
+# SpacePortal Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+SpacePortal is a React-based frontend for viewing space-weather data (solar flares, NASA APOD) and user dashboards. This repo integrates with the SpacePortalBackEnd API.
 
-## Available Scripts
+## Prerequisites
+- Node.js LTS (>= 18)
+- npm (bundled with Node)
+- A running SpacePortalBackEnd (ASP.NET Core) instance
 
-In the project directory, you can run:
+## Getting Started
 
-### `npm start`
+1) Clone both repos
+- Backend (ASP.NET Core)
+- Frontend (this repo)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+2) Environment configuration
+- Copy the example env file and set your backend base URL:
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+- Set REACT_APP_API_BASE_URL to your backend origin (no trailing slash), e.g.:
+```
+REACT_APP_API_BASE_URL=https://localhost:7178
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+3) Install dependencies
+```powershell
+npm install
+```
 
-### `npm test`
+4) Start the app
+```powershell
+npm start
+```
+- Default dev server will open on http://localhost:3000 (Create React App).
+- The app reads the backend URL from REACT_APP_API_BASE_URL.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Pointing to your backend
 
-### `npm run build`
+- All API calls are centralized in:
+  - src/lib/api.ts
+- The base URL is resolved from:
+  - process.env.REACT_APP_API_BASE_URL
+- Do not hardcode API URLs; update .env instead.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Example .env.example included:
+```
+REACT_APP_API_BASE_URL=https://localhost:7178
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+If you change .env, restart the dev server.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Key Pages and Features
 
-### `npm run eject`
+- Home (src/pages/Home.tsx)
+  - Hero + CTA cards
+  - APOD carousel fetching directly from /api/apod/recent
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+- Solar Flares (src/pages/DONKI/Flare/Flares.tsx)
+  - Fetches events from /api/event/getevent
+  - Filter by flare class (A/B/C/M/X)
+  - Pagination and expandable details
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- Shared API client (src/lib/api.ts)
+  - Centralized fetch with JWT header injection
+  - DTO normalization (e.g., APOD)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Backend Endpoints (expected)
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- APOD
+  - GET /api/apod/today
+  - GET /api/apod/{date}
+  - GET /api/apod/recent?limit=30
 
-## Learn More
+- Events
+  - GET /api/event/getevent
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Ensure your backend implements these routes or adjust the frontend calls accordingly.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## CORS and Dev Proxy (optional)
+
+Option A: Backend CORS
+- Allow the frontend origin (http://localhost:3000) in backend CORS config.
+
+Option B: CRA Proxy
+- You can add a proxy field to package.json to avoid CORS during local dev:
+```
+{
+  "proxy": "https://localhost:7178"
+}
+```
+- Then you can keep REACT_APP_API_BASE_URL default and call relative /api paths.
+
+Note: For HTTPS localhost, trust the dev certificate (dotnet dev-certs https --trust) or your browser will block requests.
+
+## Troubleshooting
+
+- “Image unavailable” in carousel:
+  - Verify /api/apod/recent returns items with mediaType === "image" and valid url.
+  - Check console/network for 404/500 or CORS errors.
+  - Confirm REACT_APP_API_BASE_URL is set correctly and has no trailing slash.
+
+- API calls failing:
+  - Backend not running or wrong port/host.
+  - Mixed content: frontend http vs backend https (or vice versa).
+  - Certificate not trusted (HTTPS).
+
+- Env changes not applied:
+  - Restart the dev server after editing .env.
+
+## Scripts
+
+- npm start: Run dev server
+- npm build: Production build
+- npm test: Run unit tests (if configured)
+
+## Project Structure (selected)
+
+- src/pages/Home.tsx
+- src/pages/DONKI/Flare/Flares.tsx
+- src/components/Carousel.tsx
+- src/components/SpaceEventItem.tsx
+- src/lib/api.ts
+
+## Contributing
+
+- Add/update .env.example when new env vars are introduced.
+- Keep API URLs centralized in src/lib/api.ts.
+- Document new pages/components in this README.
+
+## License
+
+Proprietary or project-specific license. Update this section to reflect your chosen license.
