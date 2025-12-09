@@ -129,6 +129,4 @@ Note: For HTTPS localhost, trust the dev certificate (dotnet dev-certs https --t
 - Keep API URLs centralized in src/lib/api.ts.
 - Document new pages/components in this README.
 
-## License
 
-Proprietary or project-specific license. Update this section to reflect your chosen license.
