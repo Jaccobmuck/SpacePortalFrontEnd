@@ -112,7 +112,16 @@ export default function NavBar() {
                   APOD
                 </NavLink>
               </li>
-              {/* Future items can be added here */}
+              <li>
+                <NavLink to="/cme" className={({ isActive }) => `menu-link ${isActive ? 'active' : ''}`} onClick={() => setServicesOpen(false)}>
+                  CME
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/gst" className={({ isActive }) => `menu-link ${isActive ? 'active' : ''}`} onClick={() => setServicesOpen(false)}>
+                  Geomagnetic Storms
+                </NavLink>
+              </li>
             </ul>
           </details>
           <NavLink to="/about" className="btn secondary">

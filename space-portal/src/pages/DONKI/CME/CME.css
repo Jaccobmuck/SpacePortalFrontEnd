@@ -1,0 +1,41 @@
+/* Layout/Container */
+.cme {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space);
+  color: var(--text);
+}
+
+.cme__intro h1 {
+  margin: 0 0 calc(var(--space) / 2);
+}
+
+.cme__intro p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 var(--space);
+}
+
+/* Status */
+.cme__status {
+  margin: var(--space) 0;
+  color: var(--muted);
+}
+.cme__status--error {
+  color: #ffb4b4;
+}
+
+/* List */
+.cme__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cme__empty {
+  color: var(--muted);
+  padding: var(--space);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}

@@ -9,6 +9,8 @@ import Home from './pages/Home';
 import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import Flares from './pages/DONKI/Flare/Flares';
+import CME from './pages/DONKI/CME/CME';
+import GST from './pages/DONKI/GST/GST';
 import Admin from './pages/Admin/Admin';
 import UserInfo from './pages/User/UserInfo';
 import RequireAdmin from './components/RequireAdmin';
@@ -39,6 +41,8 @@ export default function App() {
 
           {/* Data pages */}
           <Route path="/flares" element={<Flares />} />
+          <Route path="/cme" element={<CME />} />
+          <Route path="/gst" element={<GST />} />
           <Route path="/apod" element={<ApodPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

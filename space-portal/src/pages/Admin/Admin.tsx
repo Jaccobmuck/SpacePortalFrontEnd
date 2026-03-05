@@ -23,12 +23,26 @@ export default function Admin() {
       });
   }, []);
 
-  // Import panel state
+  // Flare import panel state
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DonkiImportResult | null>(null);
   const [error, setError] = useState('');
+
+  // CME import panel state
+  const [cmeStart, setCmeStart] = useState('');
+  const [cmeEnd, setCmeEnd] = useState('');
+  const [cmeLoading, setCmeLoading] = useState(false);
+  const [cmeResult, setCmeResult] = useState<DonkiImportResult | null>(null);
+  const [cmeError, setCmeError] = useState('');
+
+  // GST import panel state
+  const [gstStart, setGstStart] = useState('');
+  const [gstEnd, setGstEnd] = useState('');
+  const [gstLoading, setGstLoading] = useState(false);
+  const [gstResult, setGstResult] = useState<DonkiImportResult | null>(null);
+  const [gstError, setGstError] = useState('');
 
   // Import handler
   async function handleImport(e: React.FormEvent) {
@@ -69,6 +83,72 @@ export default function Admin() {
       setError(err?.message || 'Import failed');
     } finally {
       setLoading(false);
+    }
+  }
+
+  // CME Import handler
+  async function handleCmeImport(e: React.FormEvent) {
+    e.preventDefault();
+    setCmeLoading(true);
+    setCmeError('');
+    setCmeResult(null);
+
+    function toYMD(dateStr: string) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const params: { start?: string; end?: string } = {};
+    const startYMD = toYMD(cmeStart);
+    const endYMD = toYMD(cmeEnd);
+    if (startYMD) params.start = startYMD;
+    if (endYMD) params.end = endYMD;
+
+    try {
+      const data = await api.importDonkiCME(params);
+      setCmeResult(data);
+    } catch (err: any) {
+      setCmeError(err?.message || 'Import failed');
+    } finally {
+      setCmeLoading(false);
+    }
+  }
+
+  // GST Import handler
+  async function handleGstImport(e: React.FormEvent) {
+    e.preventDefault();
+    setGstLoading(true);
+    setGstError('');
+    setGstResult(null);
+
+    function toYMD(dateStr: string) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const params: { start?: string; end?: string } = {};
+    const startYMD = toYMD(gstStart);
+    const endYMD = toYMD(gstEnd);
+    if (startYMD) params.start = startYMD;
+    if (endYMD) params.end = endYMD;
+
+    try {
+      const data = await api.importDonkiGST(params);
+      setGstResult(data);
+    } catch (err: any) {
+      setGstError(err?.message || 'Import failed');
+    } finally {
+      setGstLoading(false);
     }
   }
 
@@ -144,6 +224,80 @@ export default function Admin() {
               )}
               {result.note && <div>Note: {result.note}</div>}
               {result.message && <div>Message: {result.message}</div>}
+            </div>
+          )}
+        </PanelBox>
+      </div>
+
+      {/* Second row of import panels */}
+      <div className="admin-import" style={{ display: 'flex', gap: '3rem', justifyContent: 'center', alignItems: 'flex-start', flexWrap: 'nowrap', marginTop: '2rem' }}>
+        <PanelBox title="Import CME Data (DONKI)">
+          <form onSubmit={handleCmeImport} className="admin-import__form">
+            <div>
+              <label>
+                Start Date:
+                <input type="date" value={cmeStart} onChange={e => setCmeStart(e.target.value)} />
+              </label>
+            </div>
+            <div>
+              <label>
+                End Date:
+                <input type="date" value={cmeEnd} onChange={e => setCmeEnd(e.target.value)} />
+              </label>
+            </div>
+            <button type="submit" disabled={cmeLoading}>
+              {cmeLoading ? 'Importing...' : 'Import CMEs'}
+            </button>
+          </form>
+          {cmeError && <div className="admin-import__error">Error: {cmeError}</div>}
+          {cmeResult && (
+            <div className="admin-import__result">
+              <h3>Import Complete</h3>
+              <div>Imported: {cmeResult.imported}</div>
+              {cmeResult.capped && (
+                <div style={{ color: 'orange', fontWeight: 600 }}>
+                  Import capped at {cmeResult.totalAvailable} records
+                </div>
+              )}
+              {typeof cmeResult.totalAvailable === 'number' && (
+                <div>Total Available: {cmeResult.totalAvailable}</div>
+              )}
+              {cmeResult.note && <div>Note: {cmeResult.note}</div>}
+            </div>
+          )}
+        </PanelBox>
+        <PanelBox title="Import Geomagnetic Storm Data (DONKI)">
+          <form onSubmit={handleGstImport} className="admin-import__form">
+            <div>
+              <label>
+                Start Date:
+                <input type="date" value={gstStart} onChange={e => setGstStart(e.target.value)} />
+              </label>
+            </div>
+            <div>
+              <label>
+                End Date:
+                <input type="date" value={gstEnd} onChange={e => setGstEnd(e.target.value)} />
+              </label>
+            </div>
+            <button type="submit" disabled={gstLoading}>
+              {gstLoading ? 'Importing...' : 'Import Storms'}
+            </button>
+          </form>
+          {gstError && <div className="admin-import__error">Error: {gstError}</div>}
+          {gstResult && (
+            <div className="admin-import__result">
+              <h3>Import Complete</h3>
+              <div>Imported: {gstResult.imported}</div>
+              {gstResult.capped && (
+                <div style={{ color: 'orange', fontWeight: 600 }}>
+                  Import capped at {gstResult.totalAvailable} records
+                </div>
+              )}
+              {typeof gstResult.totalAvailable === 'number' && (
+                <div>Total Available: {gstResult.totalAvailable}</div>
+              )}
+              {gstResult.note && <div>Note: {gstResult.note}</div>}
             </div>
           )}
         </PanelBox>

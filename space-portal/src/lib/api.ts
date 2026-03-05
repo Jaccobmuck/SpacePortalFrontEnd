@@ -3,7 +3,7 @@
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-const BASE = (process.env.REACT_APP_API_BASE_URL || 'https://localhost:7178').replace(/\/$/, '');
+const BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:5274').replace(/\/$/, '');
 
 // ---- Auth token handling ----
 const TOKEN_STORAGE_KEY = 'spaceportal.jwt';
@@ -310,6 +310,20 @@ export const api = {
     const qs = q.length ? `?${q.join('&')}` : '';
     // POST with no body
     return request<DonkiImportResult>(`/api/import/donki/flares${qs}`, 'POST');
+  },
+  async importDonkiCME(params?: { start?: string; end?: string }) {
+    const q: string[] = [];
+    if (params?.start) q.push(`start=${encodeURIComponent(params.start)}`);
+    if (params?.end) q.push(`end=${encodeURIComponent(params.end)}`);
+    const qs = q.length ? `?${q.join('&')}` : '';
+    return request<DonkiImportResult>(`/api/import/donki/cme${qs}`, 'POST');
+  },
+  async importDonkiGST(params?: { start?: string; end?: string }) {
+    const q: string[] = [];
+    if (params?.start) q.push(`start=${encodeURIComponent(params.start)}`);
+    if (params?.end) q.push(`end=${encodeURIComponent(params.end)}`);
+    const qs = q.length ? `?${q.join('&')}` : '';
+    return request<DonkiImportResult>(`/api/import/donki/gst${qs}`, 'POST');
   },
   // Profiles
   async getUserProfile(id: number): Promise<UserProfileDTO> {
